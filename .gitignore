@@ -1,0 +1,96 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.env
+.venv
+env.bak/
+venv.bak/
+
+# IDE相关
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.project
+.pydevproject
+.settings/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# 日志文件
+*.log
+logs/
+
+# 本地配置文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 模型文件和大型数据文件
+*.pt
+*.pth
+*.onnx
+*.wav
+*.mp3
+*.mp4
+*.zip
+*.tar.gz
+*.tar
+*.rar
+*.7z
+*.bin
+*.model
+*.weights
+*.h5
+*.hdf5
+*.pkl
+*.joblib
+
+# 项目特定文件
+iic/
+temp_audio.wav
+zero_shot_*.wav
+fine_grained_control_*.wav
+instruct_*.wav
+
+# 缓存文件
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# 其他
+.history/
+.specstory/
+.cursorindexingignore 
