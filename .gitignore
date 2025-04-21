@@ -94,3 +94,5 @@ htmlcov/
 .history/
 .specstory/
 .cursorindexingignore 
+
+recordings/

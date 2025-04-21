@@ -1,5 +1,7 @@
 import os
 import json
+import tempfile
+import time
 from game_prompt.siliconflow_api import GameAgent
 from game_prompt.game_prompts import (
     system_prompt_init,
@@ -7,7 +9,12 @@ from game_prompt.game_prompts import (
     system_prompt_env_update2,
 )
 import dotenv
+from playsound import playsound
+from text2voice.generate_voice import generate_voice
 
+def play_audio(file_path):
+    """播放音频文件"""
+    playsound(file_path)
 
 def main():
     """游戏主程序"""
@@ -34,6 +41,10 @@ def main():
     print("=" * 50)
     print(f"当前心情状态: {agent.mood}")
 
+    # 创建临时目录用于存储音频文件
+    temp_dir = tempfile.mkdtemp()
+    audio_file = os.path.join(temp_dir, "doctor_speech.mp3")
+
     # 主游戏循环
     while True:
         # 获取用户输入
@@ -52,9 +63,30 @@ def main():
         # 处理用户输入
         response = agent.process_user_input(user_input)
 
-        # 显示代理说的话
+        # 显示代理说的话并转换为语音
         if "speak" in response:
-            print(f"医生: {response['speak']}")
+            doctor_speech = response['speak']
+            print(f"医生: {doctor_speech}")
+            
+            # 根据医生的心情状态选择不同的语音
+            voice = "FunAudioLLM/CosyVoice2-0.5B:alex"  # 默认语音
+        
+            # 生成语音
+            try:
+                # 添加情感标记
+                emotion_prompt = f"用{response.get('mood', '轻微紧张')}的情绪 说: <|endofprompt|>{doctor_speech}"
+                
+                generate_voice(
+                    text=emotion_prompt,
+                    voice=voice,
+                    api_key=api_key,
+                    output_file=audio_file
+                )
+                
+                # 播放语音
+                play_audio(audio_file)
+            except Exception as e:
+                print(f"生成或播放语音时出错: {e}")
 
         # 处理动作
         action = response.get("action")
@@ -87,6 +119,13 @@ def main():
         # 显示当前心情状态
         print(f"当前心情状态: {agent.mood}")
         print("-" * 50)
+
+    # 清理临时文件
+    try:
+        os.remove(audio_file)
+        os.rmdir(temp_dir)
+    except:
+        pass
 
 
 if __name__ == "__main__":
