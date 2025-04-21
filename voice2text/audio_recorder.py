@@ -1,132 +1,81 @@
-import pyaudio
-import wave
-import numpy as np
-import threading
-import queue
 import time
-import os
-
-class AudioRecorder:
-    def __init__(self):
-        self.CHUNK = 1024
-        self.FORMAT = pyaudio.paFloat32
-        self.CHANNELS = 2
-        self.RATE = 16000
-        self.audio_queue = queue.Queue()
-        self.is_recording = False
-        self.p = pyaudio.PyAudio()
-        
-    def start_recording(self):
-        """开始录音"""
-        self.is_recording = True
-        self.stream = self.p.open(
-            format=self.FORMAT,
-            channels=self.CHANNELS,
-            rate=self.RATE,
-            input=True,
-            frames_per_buffer=self.CHUNK
-        )
-        
-        def record():
-            while self.is_recording:
-                try:
-                    data = self.stream.read(self.CHUNK)
-                    self.audio_queue.put(data)
-                except Exception as e:
-                    print(f"录音错误: {e}")
-                    break
-                    
-        self.record_thread = threading.Thread(target=record)
-        self.record_thread.start()
-        
-    def stop_recording(self):
-        """停止录音"""
-        self.is_recording = False
-        if hasattr(self, 'stream'):
-            self.stream.stop_stream()
-            self.stream.close()
-        self.record_thread.join()
-        
-    def get_audio_data(self):
-        """获取录音数据"""
-        audio_data = []
-        while not self.audio_queue.empty():
-            audio_data.append(self.audio_queue.get())
-        return b''.join(audio_data)
-    
-    def save_audio(self, filename):
-        """保存音频数据到文件"""
-        audio_data = self.get_audio_data()
-        with wave.open(filename, 'wb') as wf:
-            wf.setnchannels(self.CHANNELS)
-            wf.setsampwidth(self.p.get_sample_size(self.FORMAT))
-            wf.setframerate(self.RATE)
-            wf.writeframes(audio_data)
-        return filename
-
-class VoiceActivityDetector:
-    def __init__(self, recorder):
-        self.recorder = recorder
-        self.CHUNK = recorder.CHUNK
-        self.RATE = recorder.RATE
-        self.FORMAT = recorder.FORMAT
-        self.silence_threshold = 0.01  # 静音阈值
-        self.silence_duration = 0.5  # 静音持续时间（秒）
-        self.speech_duration = 0.3  # 语音持续时间（秒）
-        self.silence_counter = 0
-        self.speech_counter = 0
-        self.is_speaking = False
-        self.stream = None
-        
-    def start_detection(self):
-        """开始语音活动检测"""
-        self.stream = self.recorder.p.open(
-            format=self.FORMAT,
-            channels=self.recorder.CHANNELS,
-            rate=self.RATE,
-            input=True,
-            frames_per_buffer=self.CHUNK
-        )
-        
-        def detect():
+import queue
+import sounddevice as sd
+import numpy as np
+from aip import AipSpeech
+import sys
+ 
+# 百度云配置信息
+APP_ID = '6743375'  # 替换为实际的 APP ID
+API_KEY = '47WnxRpPkJr739TFVbBzplXj'  # 替换为实际的 API KEY
+SECRET_KEY = 'O47O7phCennMUifH2sVQkyI3mi1pMCaJ'  # 替换为实际的 SECRET KEY
+ 
+client = AipSpeech(APP_ID, API_KEY, SECRET_KEY)
+ 
+# Queue to hold the recorded audio data
+audio_queue = queue.Queue()
+speaker_queue = queue.Queue()
+ 
+# Callback function to capture audio data from microphone
+def audio_callback(indata, frames, time, status):
+    if status:
+        print(status, file=sys.stderr)
+    audio_queue.put(indata.copy())
+ 
+# Callback function to capture audio data from speaker
+def speaker_callback(indata, frames, time, status):
+    if status:
+        print(status, file=sys.stderr)
+    speaker_queue.put(indata.copy())
+# [2]实现实时语音识别类
+class RealTimeSpeechRecognizer:
+    def __init__(self, client, name):
+        self.client = client
+        self.name = name
+ 
+    def send_audio(self, audio_data):
+        result = self.client.asr(audio_data, 'pcm', 16000, {
+            'dev_pid': 1537,
+        })
+        if result.get('err_no') == 0:
+            print(f"{self.name} 识别结果: {result['result']}")
+        else:
+            print(f"{self.name} 错误: {result['err_msg']}")
+ 
+# 调用百度的语音转文字的接口
+def recognize_speech(audio_data, recognizer):
+    audio_data = np.concatenate(audio_data)
+    recognizer.send_audio(audio_data.tobytes())
+# [3]开始音频流并处理音频数据
+def start_audio_stream(mic_recognizer, speaker_recognizer, speaker_device_index):
+    with sd.InputStream(callback=audio_callback, channels=1, samplerate=16000, dtype='int16') as mic_stream, \
+            sd.InputStream(callback=speaker_callback, channels=2, samplerate=16000, dtype='int16', device=speaker_device_index) as spk_stream:
+        print("Recording audio... Press Ctrl+C to stop.")
+        mic_audio_buffer = []
+        speaker_audio_buffer = []
+        try:
             while True:
-                try:
-                    data = self.stream.read(self.CHUNK)
-                    audio_data = np.frombuffer(data, dtype=np.float32)
-                    volume_norm = np.linalg.norm(audio_data) / len(audio_data)
-                    
-                    if volume_norm > self.silence_threshold:
-                        self.speech_counter += 1
-                        self.silence_counter = 0
-                        
-                        if self.speech_counter >= int(self.speech_duration * self.RATE / self.CHUNK) and not self.is_speaking:
-                            self.is_speaking = True
-                            print("检测到语音，开始录音...")
-                            self.recorder.start_recording()
-                    else:
-                        self.silence_counter += 1
-                        self.speech_counter = 0
-                        
-                        if self.silence_counter >= int(self.silence_duration * self.RATE / this.CHUNK) and this.is_speaking:
-                            this.is_speaking = False
-                            print("语音结束，停止录音...")
-                            this.recorder.stop_recording()
-                            
-                            # 保存录音并返回文件名
-                            temp_file = f"temp_audio_{int(time.time())}.wav"
-                            this.recorder.save_audio(temp_file)
-                            return temp_file
-                            
-                except Exception as e:
-                    print(f"检测错误: {e}")
-                    break
-                    
-        this.detect_thread = threading.Thread(target=detect)
-        this.detect_thread.start()
-        
-    def stop_detection(self):
-        """停止语音活动检测"""
-        if this.stream:
-            this.stream.stop_stream()
-            this.stream.close()
-        this.detect_thread.join()
+                while not audio_queue.empty():
+                    mic_audio_buffer.append(audio_queue.get())
+                while not speaker_queue.empty():
+                    speaker_audio_buffer.append(speaker_queue.get())
+ 
+                if len(mic_audio_buffer) >= 10:
+                    recognize_speech(mic_audio_buffer, mic_recognizer)
+                    mic_audio_buffer = []  # Clear buffer after sending
+ 
+                if len(speaker_audio_buffer) >= 10:
+                    recognize_speech(speaker_audio_buffer, speaker_recognizer)
+                    speaker_audio_buffer = []  # Clear buffer after sending
+ 
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("Stopping audio recording.")
+# [4]主程序入口
+if __name__ == "__main__":
+    speaker_device_index = 8  # 使用 pulse 设备（索引 8）来捕获扬声器输出
+ 
+    mic_recognizer = RealTimeSpeechRecognizer(client, "麦克风接收：")
+    speaker_recognizer = RealTimeSpeechRecognizer(client, "扬声器接收：")
+ 
+    start_audio_stream(mic_recognizer, speaker_recognizer, speaker_device_index)

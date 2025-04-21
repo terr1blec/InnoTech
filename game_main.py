@@ -1,6 +1,6 @@
 import os
 import json
-from game_prompt.deepseek_api import GameAgent
+from game_prompt.siliconflow_api import GameAgent
 from game_prompt.game_prompts import (
     system_prompt_init,
     system_prompt_env_update1,
@@ -15,10 +15,10 @@ def main():
     dotenv.load_dotenv()
 
     # 检查API密钥
-    api_key = os.environ.get("DEEPSEEK_API_KEY")
+    api_key = os.environ.get("SILICONFLOW_API_KEY")
     if not api_key:
-        print("错误: 未设置DEEPSEEK_API_KEY环境变量")
-        print("请设置环境变量: export DEEPSEEK_API_KEY=你的API密钥")
+        print("错误: 未设置SILICONFLOW_API_KEY环境变量")
+        print("请设置环境变量: export SILICONFLOW_API_KEY=你的API密钥")
         return
 
     # 初始化游戏代理
