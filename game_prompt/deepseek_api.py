@@ -87,6 +87,7 @@ class GameAgent:
         self.api = DeepSeekAPI(api_key, model)
         self.messages = []
         self.mood = "轻微紧张"  # 初始心情状态
+        self.action_prompt_sent = False  # 添加标志，跟踪是否已发送action_prompt
 
     def initialize_game(self, system_prompt: str):
         """
@@ -129,11 +130,14 @@ class GameAgent:
         Returns:
             代理响应，包含动作和说话内容
         """
+
+        # 只在第一次发送动作提示
+        if not self.action_prompt_sent:
+            self.messages.append({"role": "system", "content": action_prompt})
+            self.action_prompt_sent = True
+
         # 添加用户消息到历史
         self.messages.append({"role": "user", "content": user_input})
-
-        # 添加动作提示
-        self.messages.append({"role": "system", "content": action_prompt})
 
         # 调用 API 获取响应
         response = self.api.chat(self.messages)
