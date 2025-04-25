@@ -12,9 +12,6 @@ import dotenv
 from playsound import playsound
 from text2voice.generate_voice import generate_voice
 
-def play_audio(file_path):
-    """播放音频文件"""
-    playsound(file_path)
 
 def main():
     """游戏主程序"""
@@ -42,7 +39,8 @@ def main():
     print(f"当前心情状态: {agent.mood}")
 
     # 创建临时目录用于存储音频文件
-    temp_dir = tempfile.mkdtemp()
+    
+    temp_dir = 'temp'
     audio_file = os.path.join(temp_dir, "doctor_speech.mp3")
 
     # 主游戏循环
@@ -74,7 +72,7 @@ def main():
             # 生成语音
             try:
                 # 添加情感标记
-                emotion_prompt = f"用{response.get('mood', '轻微紧张')}的情绪 说: <|endofprompt|>{doctor_speech}"
+                emotion_prompt = f"用非常紧张的情绪 说: <|endofprompt|>{doctor_speech}"
                 
                 generate_voice(
                     text=emotion_prompt,
@@ -84,7 +82,7 @@ def main():
                 )
                 
                 # 播放语音
-                play_audio(audio_file)
+                playsound(audio_file)
             except Exception as e:
                 print(f"生成或播放语音时出错: {e}")
 
