@@ -227,7 +227,7 @@ if __name__ == "__main__":
     from game_prompt.game_prompts import system_prompt_init
 
     dotenv.load_dotenv()
-
+    print(os.environ.get("SILICONFLOW_API_KEY"))
     # 初始化游戏代理
     agent = GameAgent()
 

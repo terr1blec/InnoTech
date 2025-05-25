@@ -96,3 +96,5 @@ htmlcov/
 .cursorindexingignore 
 
 recordings/
+# SpecStory explanation file
+.specstory/.what-is-this.md
