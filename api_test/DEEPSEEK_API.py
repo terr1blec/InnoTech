@@ -6,8 +6,8 @@ import os
 class DualAPISimulator:
     def __init__(self):
         # 初始化两个独立的API客户端
-        self.main_client = OpenAI(api_key="sk-684d35dc65ce4c698524cd159189302d", base_url="https://api.deepseek.com")
-        self.mood_client = OpenAI(api_key="sk-684d35dc65ce4c698524cd159189302d", base_url="https://api.deepseek.com")
+        self.main_client = OpenAI( base_url="https://api.deepseek.com")
+        self.mood_client = OpenAI(base_url="https://api.deepseek.com")
         
         # 从本地加载prompt
         self.main_prompt = Path("F:\Agent\InnoTech\\api_test\mainprompt.txt").read_text(encoding='utf-8')
